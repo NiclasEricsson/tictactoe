@@ -1,0 +1,961 @@
+from tkinter import*
+import random
+import winsound
+
+#-------------------------------- Gameboard (Spelbrädet) ----------------------------------------------------------------# 
+
+
+class Gameboard():
+
+
+#---------- Skapar en matris (ett Gameboard-objekt) ---------------------------------------------------#
+
+
+    def __init__(self, matrix):
+        self.__matrix = matrix
+
+
+#---------- Lägger till ett Symbol-objekt i matrisen/Gameboard-objektet -------------------------------#
+
+
+    def add_symbol_to_gameboard(self, symbol, column, row):
+        empty = False   # <--- Variabel som anger om platsen som spelaren försöker lägga ut sin spelmarkör på är tom. Sätts i början som False för att bli True om platsen är tom
+        while not empty:
+            
+            if self.__matrix[column][row] == "-":
+                
+                print("Lägger ut din symbol..." + "\n")
+                print("Dina koordinater: " + "(Kolumn " + (str(column+1)) + ", Rad " + str(row+1) + ")" + "\n")
+                
+                self.__matrix[column][row] = symbol   # <--- Spelmarkören (symbolen) läggs ut på platsen self.__matrix[column][row], där column är kolumnen (listan) och row är raden (platsen i listan)
+                empty = True
+                
+            else:
+                
+                break
+      
+        return empty
+
+
+#---------- Kollar om det är vinstmöjlighet (eller om spelaren håller på att vinna) horisontellt ----------#
+
+
+    def horizontal_gameboard_check(self, symbol, symbol_O):
+        stop = False                            # <--- Stop-variabel som används för att kunna komma ur de två for-looparna
+        save_numbers = []                       # <--- Lista som sparar ner utläggningskoordinaterna om en utläggning sker
+        for row in range(len(self.__matrix)):   # <--- Två for-loopar, första sätter row (raden) till 0, 1, 2, och för varje rad sätts column (kolumnen) till 0, 1, 2. På så sätt genomlöpes matrisen radvis
+            
+            emptySlot = None                    # <--- Om det finns en tom plats på raden sätts emptySlot till den tomma platsens kolumn-koordinat
+            symbol_counter = 0                  # <--- Räknar antalet symboler (av samma sort) på varje rad. Om denna blir 2 och emptySlot sätts till en plats anger det att det finns en vinstmöjlighet för spelaren eller för datorspelaren
+            
+            for column in range(len(self.__matrix)):
+
+                if self.__matrix[column][row] == symbol:
+                    symbol_counter = symbol_counter + 1
+
+                if self.__matrix[column][row] == "-":
+                    emptySlot = column
+
+                if emptySlot != None and symbol_counter == 2:
+                    self.__matrix[emptySlot][row] = symbol_O
+                    stop = True
+                    save_numbers = [emptySlot, row]
+                    print("Lägger ut datorns symbol..." + "\n")
+                    break
+
+            if stop:
+                break
+
+        return save_numbers
+
+
+#---------- Kollar om det är vinstmöjlighet (eller om spelaren håller på att vinna) vertikalt (funkar likadant som metoden ovan) ----------#
+
+
+    def vertical_gameboard_check(self, symbol, symbol_O):
+        stop = False
+        save_numbers = []
+        for column in range(len(self.__matrix)):
+            
+            emptySlot = None
+            symbol_counter = 0
+            
+            for row in range(len(self.__matrix)):
+
+                if self.__matrix[column][row] == symbol:
+                    symbol_counter = symbol_counter + 1
+
+                if self.__matrix[column][row] == "-":
+                    emptySlot = row
+
+                if emptySlot != None and symbol_counter == 2:
+                    self.__matrix[column][emptySlot] = symbol_O
+                    stop = True
+                    save_numbers = [column, emptySlot]
+                    print("Lägger ut datorns symbol..." + "\n")
+                    break
+
+            if stop:
+                break
+    
+        return save_numbers
+
+
+#---------- Kollar om det är vinstmöjlighet (eller om spelaren håller på att vinna) diagonalt ---------#
+
+
+    def diagonal_gameboard_check(self, symbol, symbol_O, diagonal_checklist):
+        stop = False
+        save_numbers = []
+        emptySlot = None
+        symbol_counter = 0
+        for column in range(len(diagonal_checklist)):   # <--- For-loop som varierar kolumn-platsen
+
+            if self.__matrix[diagonal_checklist[column][0]][diagonal_checklist[column][1]] == symbol:
+                symbol_counter = symbol_counter + 1
+
+            if self.__matrix[diagonal_checklist[column][0]][diagonal_checklist[column][1]] == "-":
+                emptySlot = column
+
+            if emptySlot != None and symbol_counter == 2:
+                self.__matrix[diagonal_checklist[emptySlot][0]][diagonal_checklist[emptySlot][1]] = symbol_O
+                stop = True
+                save_numbers = [diagonal_checklist[emptySlot][0], diagonal_checklist[emptySlot][1]]
+                print("Lägger ut datorns symbol..." + "\n")
+                break
+
+        return save_numbers
+
+
+#---------- Datorspelarens algoritmer -----------------------------------------------------------------#
+
+            
+    def computer_player(self, symbol_X, symbol_O):
+        diagonal_checklist = [[0,0],[1,1],[2,2]]    # <--- diagonal_checklist är en lista med de koordinater som anger diagonal vinst från övre vänstra till nedre högra hörnet
+        diagonal_checklist_2 = [[0,2],[1,1],[2,0]]  # <--- diagonal_checklist_2 är en lista med de koordinater som anger diagonal vinst från nedre vänstra till övre högra hörnet
+        stop = False        
+
+        #--------------------- 1) Vinstmöjligheter -------------------------------------#
+
+        if not stop:                                                            # <--- if-satser som går igenom alla scenarios (vertikalt, horisontellt och diagonalt) för vinst och blockering
+            coordinates = self.horizontal_gameboard_check(symbol_O, symbol_O)   # <--- Om någon if-sats uppfylls sätts stop till True, vilket gör att programmet inte går in i någon av de andra satserna
+            if coordinates != [] and stop == False:                             # <--- coordinates är de två siffror som fungerar som koordinater till matrisen
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.vertical_gameboard_check(symbol_O, symbol_O)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.diagonal_gameboard_check(symbol_O, symbol_O, diagonal_checklist)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.diagonal_gameboard_check(symbol_O, symbol_O, diagonal_checklist_2)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        #---------------------- 2) Stoppa spelaren från att vinna ----------------------#
+
+        if not stop:
+            coordinates = self.horizontal_gameboard_check(symbol_X, symbol_O)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.vertical_gameboard_check(symbol_X, symbol_O)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.diagonal_gameboard_check(symbol_X, symbol_O, diagonal_checklist)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        if not stop:
+            coordinates = self.diagonal_gameboard_check(symbol_X, symbol_O, diagonal_checklist_2)
+            if coordinates != [] and stop == False:
+                stop = True
+                return coordinates
+
+        #------------- 3) Om ingen av ovanstående if-satser uppfylls slumpas en plats fram -------#
+
+        while not stop:
+            
+            random_number_column = random.randint(0,2)      # <--- Datorn slumpar två tal som den använder som koordinater till en ledig plats i matrisen
+            random_number_row = random.randint(0,2)         # <--- Datorn håller på och slumpar tal tills siffrorna ger en plats som är ledig i matrisen
+            
+            if self.__matrix[random_number_column][random_number_row] == "-":
+                self.__matrix[random_number_column][random_number_row] = symbol_O
+                stop = True
+                save_numbers = [random_number_column, random_number_row]
+                print("Lägger ut datorns symbol..." + "\n")
+                return save_numbers
+                break
+
+                        
+#---------- Ritar upp spelplanen i textformat ---------------------------------------------------------#
+
+
+    def draw_gameboard(self):
+        for column in range(len(self.__matrix)-2):
+            for row in range(len(self.__matrix)):
+                print(self.__matrix[column][row],"  ", self.__matrix[column+1][row],"  ", self.__matrix[column+2][row])
+        print()
+
+
+#---------- Kollar vinst horisontellt, vertikalt och diagonalt -----------------------------------------#
+
+
+    def win_check(self, column1, column2, column3, row1, row2, row3, symbol_X, symbol_O):
+        player_win = "none"
+        
+        if self.__matrix[column1][row1] != "-" and self.__matrix[column2][row2] != "-" and self.__matrix[column3][row3] != "-":
+            
+            check_list = []
+            check_list.append(self.__matrix[column1][row1])
+            check_list.append(self.__matrix[column2][row2])
+            check_list.append(self.__matrix[column3][row3])
+                        
+            if self.symbol_check(check_list,symbol_X, symbol_O) == "player":
+                player_win = "yes"                      # <--- Variabel som returneras till win_check(). "yes" = spelaren vinner, "no" = spelaren förlorar
+            if self.symbol_check(check_list,symbol_X, symbol_O) == "computer":
+                player_win = "no"
+                
+        return player_win
+    
+
+#---------- Kollar ifall symbolerna (spelmarkörerna), som skickas från win_check, är av samma typ. Fortsättningsmetod till win_check() och win_check_main() ----------#
+
+
+    def symbol_check(self, check_list, symbol_X, symbol_O):
+        X_counter = 0
+        O_counter = 0
+        for symbol in range(len(check_list)):
+            if check_list[symbol] == symbol_X:
+                X_counter = X_counter + 1
+            if check_list[symbol] == symbol_O:
+                O_counter = O_counter + 1
+            if X_counter == 3:
+                return "player"     # <--- Om alla tre symboler är X returneras "player" till win_check() och spelaren har vunnit
+            if O_counter == 3:
+                return "computer"   # <--- Om alla tre symboler är O returneras "computer" till win_check() och spelaren har förlorat
+
+
+#---------- Kollar mellan varje drag om någon vunnit --------------------------------------------------#
+
+
+    def win_check_main(self, symbol_X, symbol_O):
+        stop = False                                    # <--- Stop-variabel som ser till så att de två looparna avbryts om en vinst detekteras
+        player_win = "none"
+        for row in range(len(self.__matrix)):           # <--- Loopar igenom matrisen och kollar om tre symboler av samma sort ligger bredvis varandra vertikalt, horisontellt eller diagonalt
+            for column in range(len(self.__matrix)):    # <--- Om tre symboler detekteras skickas dessa till metoden win_check() där de kontrolleras
+
+                #------------------------Horisontellt-----------------------#
+                
+                if column == 0:
+                    
+                    if self.win_check(column, column+1, column+2, row, row, row, symbol_X, symbol_O) == "yes":
+                        stop = True
+                        player_win = "yes"
+                        break
+
+                    if self.win_check(column, column+1, column+2, row, row, row, symbol_X, symbol_O) == "no":
+                        stop = True
+                        player_win = "no"
+                        break
+
+                #------------------------Vertikalt--------------------------#
+                            
+                if row == 0:
+                    
+                    if self.win_check(column, column, column, row, row+1, row+2, symbol_X, symbol_O) == "yes":
+                        stop = True
+                        player_win = "yes"
+                        break
+
+                    if self.win_check(column, column, column, row, row+1, row+2, symbol_X, symbol_O) == "no":
+                        stop = True
+                        player_win = "no"
+                        break
+
+                #------------------------Diagonalt--------------------------#
+                            
+                if row == 0 and column == 0:
+                    
+                    if self.win_check(column, column+1, column+2, row, row+1, row+2, symbol_X, symbol_O) == "yes":
+                        stop = True
+                        player_win = "yes"
+                        break
+
+                    if self.win_check(column, column+1, column+2, row, row+1, row+2, symbol_X, symbol_O) == "no":
+                        stop = True
+                        player_win = "no"
+                        break
+
+                    if self.win_check(column, column+1, column+2, row+2, row+1, row, symbol_X, symbol_O) == "yes":
+                        stop = True
+                        player_win = "yes"
+                        break
+
+                    if self.win_check(column, column+1, column+2, row+2, row+1, row, symbol_X, symbol_O) == "no":
+                        stop = True
+                        player_win = "no"
+                        break
+                
+            if stop:
+                return player_win
+                break
+
+
+#---------- Kollar ifall alla spelfält på spelplanen är fulla -----------------------------------------#
+
+
+    def gameboard_full(self):
+        counter = 0
+        stop = False
+        for row in range(len(self.__matrix)):
+            for column in range(len(self.__matrix)):
+                if self.__matrix[column][row] != "-":
+                    counter = counter + 1
+                if self.__matrix[column][row] == "-":
+                    stop = True
+                    break
+            if stop:
+                break
+        if counter == 9:            # <--- Ifall metoden hittar 9 symboler på spelplanen returneras True och spelet avslutas
+            return True
+        else:
+            return False
+
+
+#---------- Sparar ner statistik i en textfil ---------------------------------------------------------#
+
+
+    def save_statistics(self, win):
+        if win:                                         # <--- win sätts till True eller False (om man vunnit eller förlorat) i button_events-metoderna och skickas hit
+            
+            win = 1
+            stop = False
+            
+            try:
+                
+                statistics_read = open("statistics.txt", "r")
+
+            except IOError:
+
+                print("Ingen statistiksparfil hittades!")
+                stop = True
+
+            if not stop:
+
+                print("Sparar statistik..." + "\n")
+
+                all_wins = statistics_read.readline()       # <--- Rad 1 i textfilen är wins
+                all_loses = statistics_read.readline()      # <--- Rad 2 i textfilen är losses
+                all_wins = int(all_wins.rstrip("\n"))
+            
+                statistics_read.close()
+
+                statistics_write = open("statistics.txt", "w")
+                statistics_write.write(str(all_wins + win) + "\n")
+                statistics_write.write(all_loses)
+                statistics_write.close()
+        
+        else:
+            
+            lose = 1
+            stop = False
+
+            try:
+            
+                statistics_read = open("statistics.txt", "r")
+
+            except IOError:
+
+                print("Ingen statistiksparfil hittades!" + "\n")
+                stop = True
+
+            if not stop:
+
+                print("Sparar statistik..." + "\n")
+
+                all_wins = statistics_read.readline()
+                all_loses = statistics_read.readline()
+                all_loses = int(all_loses.rstrip("\n"))
+            
+                statistics_read.close()
+
+                statistics_write = open("statistics.txt", "w")
+                statistics_write.write(all_wins)
+                statistics_write.write(str(all_loses + lose) + "\n")
+                statistics_write.close()
+
+
+#-------------------------------- Symbol (Spelmarkörerna) -----------------------------------------------------------#
+
+
+class Symbol():
+
+
+#---------- Skapar Symbol-objekt (spelmarkörerna) -----------------------------------------------------#
+
+    
+    def __init__(self, symbol):
+        self.symbol = symbol
+
+
+#---------- Presentationsmetod ------------------------------------------------------------------------#
+
+
+    def __str__(self):
+        return self.symbol
+
+
+#-------------------------------- Main (därifrån programmet körs) ---------------------------------------------------#
+
+
+class Main():
+
+
+#---------- Skapar den grafiska huvudmenyn -------------------------------------------------------------#
+
+
+    def main_menu(self):
+        root.geometry("370x500")
+        
+        stop = False
+        self.mainMenu = Frame(root)
+
+        try:
+            
+            self.image_main_menu = PhotoImage(file = "Images/main_menu_pic.gif")       # <--- Skapar ett gäng widgets och lägger ut dem i root-fönstret (via containern self.mainMenu som är en Frame)
+            self.image_empty = PhotoImage(file = "Images/empty_field.gif")               # <--- Skapar tillsammans huvudmenyn
+            self.image_X = PhotoImage(file = "Images/standard_X.gif")
+            self.image_O = PhotoImage(file = "Images/standard_O.gif")
+            
+            self.image_mario = PhotoImage(file = "Images/01_mario.gif")
+            self.image_luigi = PhotoImage(file = "Images/01_luigi.gif")
+            
+            self.image_megaman = PhotoImage(file = "Images/02_megaman.gif")
+            self.image_drwily = PhotoImage(file = "Images/02_drwily.gif")
+
+            self.image_metalslug1 = PhotoImage(file = "Images/03_metalslugcar.gif")
+            self.image_metalslug2 = PhotoImage(file = "Images/03_metalslugsoldier.gif")
+
+            self.game_sound_win = "Sounds/smb_stage_clear.wav"
+            self.game_sound_lose = "Sounds/smb_mariodies.wav"
+            self.game_sound_move = "Sounds/smb_powerup.wav"
+            
+        except TclError:
+            
+            root.destroy()
+            stop = True
+            self.alert_screen("Fel vid start", "Bildfilerna kunde inte hittas", False, False, False)
+            
+        if not stop:
+            
+            self.image_label = Label(self.mainMenu,image = self.image_main_menu)
+            self.welcome = Label(self.mainMenu,text = "Välkommen!")
+            self.description = Label(self.mainMenu,text = "Detta är Tre-i-rad. Vad vill du göra?")
+            self.play = Button(self.mainMenu, width = 8, height = 2, borderwidth = 3, text = "Spela", command = self.image_check)
+            self.statistics = Button(self.mainMenu, width = 8, height = 2, borderwidth = 3, text = "Statistik", command = self.load_statistics)
+            self.close_screen = Button(self.mainMenu, width = 8, height = 2, borderwidth = 3, text = "Avsluta", command = root.destroy)
+
+            self.image_select_frame = Frame(root)
+            self.image_select = Button(self.image_select_frame, width = 39, height = 2, borderwidth = 3, text = "Välj spelmarkörer", command = self.image_selection)
+
+            self.image_label.pack(side = TOP)                   # <--- Packar alla widgets innan mainloop körs
+            self.welcome.pack(pady = 10)
+            self.description.pack()
+            self.play.pack(side = LEFT, padx = 40, pady = 20)
+            self.close_screen.pack(side = RIGHT, padx = 40, pady = 20)
+            self.statistics.pack(side = BOTTOM, pady = 20)
+            self.image_select.pack(side = BOTTOM)
+
+            self.mainMenu.pack(pady = 15)
+            self.image_select_frame.pack()
+            
+            print("Laddar huvudmenyn..." + "\n")
+
+
+#---------- Gör knapparna i huvudmenyn otryckbara -----------------------------------------------------#
+
+
+    def main_menu_disable(self):
+        self.play.configure(state = DISABLED)                # <--- Huvudmenyn sätts till disable när en alertruta dyker upp
+        self.statistics.configure(state = DISABLED)
+        self.close_screen.configure(state = DISABLED)
+        self.image_select.configure(state = DISABLED)
+
+
+#---------- Gör knapparna i huvudmenyn tryckbara ------------------------------------------------------#
+
+
+    def main_menu_enable(self, frame_destroy):
+        if frame_destroy == "statistics":
+            
+            self.statistics_screen.destroy()
+
+        if frame_destroy == "image":
+
+            self.selection.destroy()
+        
+        self.play.configure(state = NORMAL)                 # <--- Huvudmenyn sätts tillbaka till normal
+        self.statistics.configure(state = NORMAL)
+        self.close_screen.configure(state = NORMAL)
+        self.image_select.configure(state = NORMAL)
+
+
+#---------- Tar bort alla widgets från main_menu ------------------------------------------------------#
+
+
+    def main_menu_forget(self):
+        self.image_label.pack_forget()                      # <--- Huvudmenyn glöms bort för att göra root-fönstret tomt så att spelplanen kan ritas upp
+        self.welcome.pack_forget()
+        self.description.pack_forget()
+        self.play.pack_forget()
+        self.statistics.pack_forget()
+        self.close_screen.pack_forget()
+        self.image_select.pack_forget()
+        
+        self.mainMenu.pack_forget()
+        self.image_select_frame.pack_forget()
+        
+        self.create_gameboard()
+
+
+#------------ Skapar ruta för att välja ikoner till spelmarkörerna ------------------------------------#
+
+
+    def image_selection(self):
+        self.main_menu_disable()
+        
+        self.selection = Tk()
+        self.selection.geometry("220x300")
+        self.selection.title("Välj spelmarkör")
+
+        image_selection_info = Label(self.selection, height = 3, text = "Vilket tema vill du spela med?")
+        
+        select_standard = Button(self.selection, width = 15, height = 2, text = "Standard", command = lambda: self.set_images("standard"))
+        select_mario = Button(self.selection, width = 15, height = 2, text = "Super Mario Bros.", command = lambda: self.set_images("mario"))
+        select_megaman = Button(self.selection, width = 15, height = 2, text = "Mega Man", command = lambda: self.set_images("megaman"))
+        select_metalslug = Button(self.selection, width = 15, height = 2, text = "Metal Slug", command = lambda: self.set_images("metalslug"))
+
+        image_selection_info.pack(pady = 7)
+
+        select_standard.pack(pady = 7, padx = 20)
+        select_mario.pack(pady = 7, padx = 20)
+        select_megaman.pack(pady = 7, padx = 20)
+        select_metalslug.pack(pady = 7, padx = 20)
+
+        self.selection.mainloop()
+
+
+#------------ Ställer in ditt val av spelmarkörer -----------------------------------------------------#
+
+
+    def set_images(self, selection):
+        print("Ställer in spelmarkörer..." + "\n")
+        
+        if selection == "standard":
+
+            self.image_player = self.image_X
+            self.image_computer = self.image_O
+            
+        if selection == "mario":
+            
+            self.image_player = self.image_mario
+            self.image_computer = self.image_luigi
+
+        if selection == "megaman":
+
+            self.image_player = self.image_megaman
+            self.image_computer = self.image_drwily
+
+        if selection == "metalslug":
+
+            self.image_player = self.image_metalslug1
+            self.image_computer = self.image_metalslug2
+
+        self.image_choice = selection
+
+        self.main_menu_enable("image")
+
+
+#------------ Kollar om spelmarkörer är valda när spelaren klickar på play-knappen -------------------#
+
+
+    def image_check(self):
+        try:
+
+            if self.image_choice != None:
+                self.main_menu_forget()
+
+        except AttributeError:
+
+            winsound.PlaySound("SystemHand", winsound.SND_ALIAS)
+            self.alert_screen("Välj spelmarkörer först!", "Du måste välja spelmarkörer innan du kan spela, detta gör du genom att klicka på knappen 'Välj spelmarkörer' i huvudmenyn.", False, False, True)
+
+
+#------------ Stänger av alla ljud i spelet -----------------------------------------------------------#
+
+
+    def mute_sound(self):
+        stop = False
+        
+        if self.sound_on_off == "Ljud på":
+            self.sound_on_off = "Ljud av"
+            self.mute_sound_button.configure(text = self.sound_on_off)
+            stop = True
+
+        if self.sound_on_off == "Ljud av" and not stop:
+            self.sound_on_off = "Ljud på"
+            self.mute_sound_button.configure(text = self.sound_on_off)
+
+#---------- Skapar en tom matris och returnerar den ---------------------------------------------------#
+
+
+    def create_matrix(self, infotext):
+        print(infotext + "\n")
+        matrix = [["-","-","-"],["-","-","-"],["-","-","-"]]
+        new_matrix = Gameboard(matrix)
+        return new_matrix
+
+
+#---------- Skapar ett Symbol-objekt och returnerar det -----------------------------------------------#
+
+
+    def create_symbol(self, symbol):
+        new_symbol = Symbol(symbol)
+        return new_symbol
+
+
+#---------- Skapar den grafiska spelplanen ------------------------------------------------------------#
+
+
+    def create_gameboard(self):
+        root.geometry("370x465") #370x400
+        
+        self.matrix = self.create_matrix("Skapar spelplan...")                  # <--- Skapar en massa widgets (knappar) som utgör spelplanen
+        self.symbol_X = self.create_symbol("X")
+        self.symbol_O = self.create_symbol("O")
+        
+        self.empty_frame = Frame(root)
+        self.gameboard_row1 = Frame(root)
+        self.gameboard_row2 = Frame(root)
+        self.gameboard_row3 = Frame(root)
+        self.buttons = Frame(root)
+
+        self.gameboard_button = [["-","-","-"],["-","-","-"],["-","-","-"]]     # <--- Skapar en matris (likt vårt Gameboard-objekt) som alla knappar (en för varje plats på spelplanen) ligger i
+                
+        self.gameboard_button[0][0] = Button(self.gameboard_row1, image = self.image_empty, command = lambda: self.button_events_player(0,0))
+        self.gameboard_button[1][0] = Button(self.gameboard_row1, image = self.image_empty, command = lambda: self.button_events_player(1,0))
+        self.gameboard_button[2][0] = Button(self.gameboard_row1, image = self.image_empty, command = lambda: self.button_events_player(2,0))
+        self.gameboard_button[0][1] = Button(self.gameboard_row2, image = self.image_empty, command = lambda: self.button_events_player(0,1))
+        self.gameboard_button[1][1] = Button(self.gameboard_row2, image = self.image_empty, command = lambda: self.button_events_player(1,1))
+        self.gameboard_button[2][1] = Button(self.gameboard_row2, image = self.image_empty, command = lambda: self.button_events_player(2,1))
+        self.gameboard_button[0][2] = Button(self.gameboard_row3, image = self.image_empty, command = lambda: self.button_events_player(0,2))
+        self.gameboard_button[1][2] = Button(self.gameboard_row3, image = self.image_empty, command = lambda: self.button_events_player(1,2))
+        self.gameboard_button[2][2] = Button(self.gameboard_row3, image = self.image_empty, command = lambda: self.button_events_player(2,2))
+        
+        self.quit_game = Button(self.buttons, width = 25, height = 2, borderwidth = 3, text = "Avsluta spelet", command = root.destroy)
+        self.sound_on_off = "Ljud av"
+        self.mute_sound_button = Button(self.buttons, width = 25, height = 2, borderwidth = 3, text = self.sound_on_off, command = self.mute_sound)
+
+        for row in range(len(self.gameboard_button)):               # <--- Packar alla widgets innan mainloop körs
+            for column in range(len(self.gameboard_button)):
+                
+                if column < 2:
+                    self.gameboard_button[column][row].pack(side = LEFT)
+
+                if column == 2:
+                    self.gameboard_button[column][row].pack(side = RIGHT)
+
+        self.quit_game.pack(pady = 25)
+        self.mute_sound_button.pack()
+
+        self.empty_frame.pack(pady = 8)
+        self.gameboard_row1.pack(padx = 45)
+        self.gameboard_row2.pack(padx = 45)
+        self.gameboard_row3.pack(padx = 45)
+        self.buttons.pack(pady = 10)
+
+        self.matrix.draw_gameboard()
+
+        print("______________________________________" + "\n")
+        
+        root.mainloop()
+
+
+#---------- Sätter alla huvudmenysknappar i tillståndet DISABLED, alltså att de inte går att trycka på ----------#
+
+
+    def gameboard_disable(self):
+        for row in range(len(self.gameboard_button)):       # <--- Gör knapparna tillfälligt otryckbara innan spelplanen töms och huvudmenyn ritas upp
+            for column in range(len(self.gameboard_button)):
+                
+                self.gameboard_button[column][row].configure(state = DISABLED)
+
+        self.quit_game.configure(state = DISABLED)
+        self.mute_sound_button.configure(state = DISABLED)
+
+
+#---------- Sätter alla knappar på spelplanen i tillståndet NORMAL, alltså att de går att trycka på -------------#
+
+
+    def gameboard_enable(self):
+        for row in range(len(self.gameboard_button)):       # <--- Gör knapparna tryckbara
+            for column in range(len(self.gameboard_button)):
+                
+                self.gameboard_button[column][row].configure(state = NORMAL)
+
+        self.quit_game.configure(state = NORMAL)
+        self.mute_sound_button.configure(state = NORMAL)
+
+
+#---------- Tar bort alla widgets från create_gameboard -----------------------------------------------#
+
+
+    def gameboard_forget(self):                             # <--- Glömmer bort alla knappar tillhörande spelplanen för att göra plats åt huvudmenyn
+        for row in range(len(self.gameboard_button)):
+            for column in range(len(self.gameboard_button)):
+
+                self.gameboard_button[column][row].pack_forget()
+                
+        self.quit_game.pack_forget()
+
+        self.empty_frame.pack_forget()
+        self.gameboard_row1.pack_forget()
+        self.gameboard_row2.pack_forget()
+        self.gameboard_row3.pack_forget()
+        self.buttons.pack_forget()
+
+
+#---------- Vad som sker när man klickar på ett spelfält på spelplanen --------------------------------#
+
+
+    def button_events_player(self, column, row):
+        computer_go = True                              # <--- Variabler som kontrollerar så att datorn inte kan göra något drag om spelaren vunnit eller om spelplanen är full
+        computer_move = True
+        
+        if not self.matrix.add_symbol_to_gameboard(self.symbol_X,column,row):
+
+            computer_go = False
+            computer_move = False
+            winsound.PlaySound("SystemHand", winsound.SND_ALIAS)
+            self.alert_screen("Draget går inte att genomföra", "Du måste lägga ut din symbol i ett tomt fält!", False, True, False)
+
+        try:
+
+            self.gameboard_button[column][row].configure(image = self.image_player) # <--- Den mänskliga spelaren
+
+        except TclError:
+            pass
+        
+        self.matrix.draw_gameboard()                                           # <--- Ritar upp spelplanen i kommandotolken
+        
+        if self.matrix.win_check_main(self.symbol_X, self.symbol_O) == "yes":  # <--- Om spelaren har vunnit sparas statistik, datorspelaren tillåts inte fortsätta och den grafiska spelplanen rensas
+
+            computer_go == False
+            computer_move = False
+            
+            print("______________________________________" + "\n")
+
+            self.matrix.save_statistics(True)
+            
+            if self.sound_on_off == "Ljud på":
+                
+                winsound.PlaySound(self.game_sound_win, winsound.SND_FILENAME)
+                
+            self.matrix = self.create_matrix("Tömmer spelplanen...")           # <--- Ersätter den använda spelplanen med en ny, tom spelplan
+            self.alert_screen("Vinst", "Du vann!", True, True, False)          # <--- Anropar metoden alert_screen() som skapar en ruta med information. Informationen skickas med som parametrar
+
+        if self.matrix.gameboard_full():                                       # <--- Om spelplanen är full (alltså om metoden returnerar True) avslutas spelet
+
+            computer_go == False
+            computer_move = False
+            
+            print("______________________________________" + "\n")
+            
+            self.matrix = self.create_matrix("Tömmer spelplanen...")
+            self.alert_screen("Oavgjort", "Ingen vann", True, True, False)
+
+        if computer_go:
+
+            self.button_events_computer(computer_move)                         # <--- Om computer_go = True får datorn göra sitt drag
+
+
+#---------- Fortsättning på button_events_player, här sker datorns drag och det grafiska kring det ----#
+
+
+    def button_events_computer(self, computer_move):
+        if computer_move:
+            
+            numbers = self.matrix.computer_player(self.symbol_X, self.symbol_O)     # <--- Datorns utläggningskoordinater sparas ner i numbers
+            print("Datorns koordinater: " + "(Kolumn " + (str(numbers[0]+1)) + ", Rad " + str(numbers[1]+1) + ")" + "\n")
+
+            self.gameboard_button[numbers[0]][numbers[1]].configure(image = self.image_computer)
+
+            self.matrix.draw_gameboard()
+
+            print("______________________________________" + "\n")
+
+            if self.sound_on_off == "Ljud på":
+
+                winsound.PlaySound(self.game_sound_move, winsound.SND_FILENAME)
+        
+        if self.matrix.win_check_main(self.symbol_X, self.symbol_O) == "no":
+
+            self.matrix.save_statistics(False)
+            
+            if self.sound_on_off == "Ljud på":
+                
+                winsound.PlaySound(self.game_sound_lose, winsound.SND_FILENAME)
+                
+            self.matrix = self.create_matrix("Tömmer spelplanen...")
+            self.alert_screen("Förlust", "Du förlorade!", True, True, False)
+
+
+#---------- Skapar en ruta med information och en Ok-knapp --------------------------------------------#
+
+
+    def alert_screen(self, title, info_text, exit_game, disable_enable_gameboard, disable_enable_mainmenu):
+        if disable_enable_gameboard:
+            self.gameboard_disable()
+
+        if disable_enable_mainmenu:
+            self.main_menu_disable()
+
+        self.alert = Tk()
+        self.alert.title(title)
+        
+        alert_frame = Frame(self.alert)
+        
+        message = Label(alert_frame, text = info_text)
+        ok_button = Button(alert_frame, width = 20, borderwidth = 3, text = "Ok", command = lambda: self.return_to_mainMenu(exit_game, disable_enable_gameboard, disable_enable_mainmenu))
+        
+        message.pack(pady = 15, padx = 10)
+        ok_button.pack(pady = 10, padx = 15)
+        
+        alert_frame.pack(padx = 40, pady = 15)
+
+        self.alert.mainloop()
+
+
+#---------- Passage-metod som kollar ifall den bara ska ta bort meddelanderutan eller om den också ska ta bort spelplanen och återvända till huvudmenyn ----------#
+
+
+    def return_to_mainMenu(self, exit_game, disable_enable_gameboard, disable_enable_mainmenu):
+        self.alert.destroy()
+        
+        if disable_enable_gameboard:
+            self.gameboard_enable()
+            
+        if exit_game:
+            self.gameboard_forget()
+            self.start()
+
+        if disable_enable_mainmenu:
+            self.main_menu_enable(None)
+
+
+#---------- Laddar in statistik -----------------------------------------------------------------------#
+
+                
+    def load_statistics(self):
+        stop = False
+        
+        try:
+            
+            statistics_read = open("statistics.txt", "r")
+            
+        except IOError:
+            
+            print("Ingen statistiksparfil hittades!" + "\n")
+            stop = True
+
+        if not stop:
+
+            print("Laddar statistik..." + "\n")
+            
+            all_wins = statistics_read.readline()
+            all_loses = statistics_read.readline()
+            statistics_read.close()
+
+            wins_info = ("Vinster: " + all_wins)
+            loses_info = ("Förluster: " + all_loses)
+
+            self.show_statistics(wins_info, loses_info)
+
+
+#---------- Visar upp statistiken i en ruta -----------------------------------------------------------#
+
+
+    def show_statistics(self, wins_info, loses_info):
+        self.main_menu_disable()
+        
+        self.statistics_screen = Tk()
+        self.statistics_screen.title("Statistik")
+        
+        statistics_text_frame = Frame(self.statistics_screen)
+        button_frame = Frame(self.statistics_screen)
+        
+        wins = Label(statistics_text_frame, text = wins_info)
+        loses = Label(statistics_text_frame, text = loses_info)
+        
+        ok_button = Button(button_frame, width = 15, borderwidth = 3, text = "Ok", command = lambda: self.main_menu_enable("statistics"))
+        reset_button = Button(button_frame, width = 15, borderwidth = 3, text = "Återställ statistik", command = self.reset_statistics)
+
+        wins.pack(padx = 20, side = LEFT)
+        loses.pack(padx = 20, side = RIGHT)
+        
+        ok_button.pack(pady = 10, padx = 10, side = LEFT)
+        reset_button.pack(pady = 10, padx = 10, side = RIGHT)
+        
+        statistics_text_frame.pack(padx = 30, pady = 15)
+        button_frame.pack(padx = 20, pady = 5)
+        self.statistics_screen.mainloop()
+
+
+#---------- Sätter antalet vinster och antalet förluster till 0 ---------------------------------------#
+
+
+    def reset_statistics(self):
+        print("Återställer statistik..." + "\n")
+        statistics_write = open("statistics.txt", "w")
+
+        statistics_write.write("0" + "\n") # <--- Vinster sätts till 0
+        statistics_write.write("0" + "\n") # <--- Förluster sätts till 0
+
+        statistics_write.close()
+
+
+#---------- Start-metoden -----------------------------------------------------------------------------#
+
+
+    def start(self):
+        self.main_menu()
+        root.mainloop()
+        
+
+print("Tic Tac Toe, a Python game by Niclas Ericsson")
+print("Current version: v1.75")
+print("© 2012 Niclas Ericsson. All rights reserved." + "\n")
+
+root = Tk()
+root.title("Tic Tac Toe by Niclas Ericsson (v1.75)")
+root.geometry("370x500")
+
+game = Main()
+game.start()
+
